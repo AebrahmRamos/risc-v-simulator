@@ -3,7 +3,8 @@ import ToolBar from './components/ToolBar'
 import CodePanel from './components/CodePanel'
 import CPUState from './components/CPUState'
 import BottomPanel from './components/BottomPanel'
-import { SimulationState, PipelineState } from './types'
+import { SimulationState, PipelineState, AsmError } from './types'
+import { assembleCode } from './services/api'
 
 const initialState: SimulationState = {
   pc: '0x00000000',
@@ -19,14 +20,38 @@ const initialState: SimulationState = {
 }
 
 export default function App(){
-  const [code, setCode] = useState<string>(`# sample riscv\naddi x1,x0,1`)
+  const [code, setCode] = useState<string>(`# sample riscv\nLW x1, 0(x2)\nAND x3, x1, x2`)
   const [sim, setSim] = useState<SimulationState>(initialState)
   const [activeTab, setActiveTab] = useState<'pipeline'|'pipeline-registers'|'console'>('pipeline')
   const [consoleLines, setConsoleLines] = useState<string[]>([])
+  const [assemblerErrors, setAssemblerErrors] = useState<AsmError[]>([])
+  const [isAssembling, setIsAssembling] = useState(false)
 
-  function handleAssemble(){
-    // mock assemble: clear errors and write a log
-    setConsoleLines((l)=>[...l, 'Assembled successfully (mock)'])
+  async function handleAssemble(){
+    setIsAssembling(true)
+    setConsoleLines((l)=>[...l, 'Assembling...'])
+    
+    try {
+      const result = await assembleCode(code)
+      
+      if (result.success) {
+        setConsoleLines((l)=>[...l, `✓ Assembly successful! ${result.instructions.length} instructions loaded.`])
+        setAssemblerErrors([])
+      } else {
+        setConsoleLines((l)=>[
+          ...l, 
+          `✗ Assembly failed with ${result.errors.length} error(s):`,
+          ...result.errors.map(e => `  Line ${e.line}: ${e.message}`)
+        ])
+        setAssemblerErrors(result.errors)
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      setConsoleLines((l)=>[...l, `✗ Error: ${errorMsg}. Is the backend running?`])
+      setAssemblerErrors([])
+    } finally {
+      setIsAssembling(false)
+    }
   }
 
   function handleStep(){
@@ -38,20 +63,29 @@ export default function App(){
   function handleReset(){
     setSim(initialState)
     setConsoleLines([])
+    setAssemblerErrors([])
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-[#1a1b26]">
       <div className="flex-shrink-0">
-        <ToolBar runState="idle" onRun={()=>{}} onPause={()=>{}} onStep={handleStep} onReset={handleReset} onAssemble={handleAssemble} />
+        <ToolBar 
+          runState="idle" 
+          onRun={()=>{}} 
+          onPause={()=>{}} 
+          onStep={handleStep} 
+          onReset={handleReset} 
+          onAssemble={handleAssemble}
+          assemblerErrorsCount={assemblerErrors.length}
+        />
       </div>
 
       {/* Main content: editor + cpu state */}
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        <div className="flex-1 bg-white border overflow-hidden">
-          <CodePanel code={code} onChange={setCode} assemblerErrors={[]} />
+      <div className="flex-1 flex gap-2 p-2 overflow-hidden">
+        <div className="flex-1 bg-[#24283b] border border-[#1f2335] overflow-hidden rounded">
+          <CodePanel code={code} onChange={setCode} assemblerErrors={assemblerErrors} />
         </div>
-        <div className="w-80 flex-shrink-0 bg-white border overflow-hidden">
+        <div className="w-80 flex-shrink-0 bg-[#24283b] border border-[#1f2335] overflow-hidden rounded">
           <CPUState state={sim} />
         </div>
       </div>
