@@ -1,8 +1,20 @@
-# RISC-V Simulator (Milestone 1)
+# Milestone 2
+Milestone 2 — GUI and Initial Execution (Nov 20, 2025)
+ - Added supoprt for labels
+ - Separated Integer and Floating integers in `CPU State` panel into tabs with scrollable views.
+ - Assemble loads program into the simulator allowing `Step` to execute a single instruction.
+   - Pressing step executes one instruction and updates the PC and the registers
+ - Implemented the simulator endpoints
+   - `POST /api/sim/load` — assemble & load program into simulator
+   - `POST /api/sim/step` — execute one instruction at current PC and return simulation state
+   - `POST /api/sim/reset` — reset simulator state
+ - Updated services to include helpers related to the three new endpoints, `loadProgram`, `simStep`, and `simReset`
+
+# RISC-V Simulator
 
 IDE-like interface for RISC-V assembly validation and simulation.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Backend (FastAPI)
 
@@ -25,16 +37,12 @@ npm run dev
 
 Frontend runs on: http://localhost:5173
 
-## ✨ Features (Milestone 1)
+---
 
-- ✅ **Tokyo Night Storm Theme** - Dark IDE-like interface
-- ✅ **Code Editor** - Write RISC-V assembly with real-time validation
-- ✅ **CPU State Display** - View integer (x0-x31) and floating-point (f0-f31) registers with ABI names
-- ✅ **Assembly Validation** - Real-time error checking via FastAPI backend
-- ✅ **Error Console** - Inline and console error display
-- ✅ **Pipeline Visualization** - Mock pipeline map (ready for expansion)
+# Milestone 1
+Implemented the requirements for Milestone 1 which is to have a program input with error checking for registers and opcode. Went further than the requirement and have already implemented the frontend ide-like interface. Although some of the components aren't functional, the main requirement for Milestone 1 has already been implemented. The error checking indicates which line is causing the error, and which instruction and/or register is invalid as seen on the demo in https://drive.google.com/drive/folders/1Q1kjVfD1sUWo6wxq2oHW6eGPIoVb_-Cl?usp=drive_link (only accessible to a few people).
 
-## 📦 Tech Stack
+## Tech Stack
 
 **Frontend:**
 - React 18 + TypeScript
@@ -48,7 +56,7 @@ Frontend runs on: http://localhost:5173
 - Pydantic validation
 - CORS enabled
 
-## 🛠️ Supported Instructions
+## Supported Instructions
 
 - **LW** - Load Word: `LW x1, 0(x2)`
 - **SW** - Store Word: `SW x2, 4(x1)`
@@ -58,25 +66,12 @@ Frontend runs on: http://localhost:5173
 - **BLT** - Branch Less Than: `BLT x1, x2, loop`
 - **BGE** - Branch Greater Equal: `BGE x1, x2, end`
 
-## 📋 Component Architecture
+## Component Architecture
  - **web/src/components/ToolBar.tsx** : Top action bar (Run, Pause, Step, Reset, Assemble) and error count.
  - **web/src/components/CodePanel.tsx** : Code editor area (textarea for M1) with inline assembler error display.
  - **web/src/components/CPUState.tsx** : Read-only CPU state panel showing PC, integer (x0..x31) and FP (f0..f31) registers.
  - **web/src/components/BottomPanel/index.tsx** : Bottom tabbed panel (Pipeline Map, Pipeline Registers, Errors/Console).
 
-## 📄 File descriptions (key files)
-
-- `web/src/App.tsx` — Main frontend layout and glue code: holds UI state, calls assemble API, wires components.
-- `web/src/types.ts` — TypeScript interfaces for SimulationState, PipelineState, and assembler error shapes.
-- `web/src/services/api.ts` — Frontend API client (assembleCode) that talks to the FastAPI backend.
-- `web/src/main.tsx` — React entry point that mounts the app.
-- `web/index.html`, `web/vite.config.ts`, `web/package.json` — Vite/Dev config and project manifest.
-- `web/src/index.css` — Tailwind + Tokyo Night Storm theme tokens and global styles.
-
-- `backend/app.py` — FastAPI application; exposes `/api/assemble` and configures CORS.
-- `backend/simulator/assembler.py` — Refactored assembler/validator logic: parse_instruction() and validate_program().
-- `backend/simulator/__init__.py` — Package marker for the simulator package (can be empty).
-- `backend/requirements.txt` — Python dependencies (FastAPI, uvicorn, pydantic).
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -94,7 +89,7 @@ Frontend runs on: http://localhost:5173
 └─────────────────────────────────────────────┘
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### POST /api/assemble
 Validate RISC-V assembly code.
@@ -118,15 +113,7 @@ Validate RISC-V assembly code.
 }
 ```
 
-## 🧪 Testing
-
-Verified with Playwright browser automation:
-- ✅ Assembly validation (success cases)
-- ✅ Error detection and display
-- ✅ Console output formatting
-- ✅ UI component rendering
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 risc-v-simulator/
@@ -147,25 +134,6 @@ risc-v-simulator/
 └── README.md
 ```
 
-## 🎨 Color Palette (Tokyo Night Storm)
 
-- Background: `#1a1b26`
-- Panels: `#24283b`
-- Borders: `#1f2335`
-- Text: `#a9b1d6`
-- Accent Blue: `#7aa2f7`
-- Accent Cyan: `#7dcfff`
-- Accent Purple: `#bb9af7`
-- Accent Green: `#9ece6a`
-- Error Red: `#f7768e`
+---
 
-## 🚧 Next Steps (Future Milestones)
-
-- [ ] Implement step-by-step execution
-- [ ] Pipeline stage visualization
-- [ ] Memory view and inspection
-- [ ] Breakpoint support
-- [ ] Monaco editor integration
-- [ ] Program counter tracking
-- [ ] Register value editing
-A simple web-based Risc-V simulator with support to a limited number of instructions executed through the following pipelining schema: Structural Hazard: Separate Memory, Data Hazard: No forwarding, Control Hazard: Predict-not-taken

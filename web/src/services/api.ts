@@ -37,3 +37,25 @@ export async function assembleCode(source: string): Promise<AssembleResponse> {
 
   return await response.json()
 }
+
+export async function loadProgram(source: string): Promise<{ success: boolean; errors?: AssembleError[] }> {
+  const response = await fetch(`${API_BASE_URL}/api/sim/load`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source }),
+  })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
+export async function simStep(): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/api/sim/step`, { method: 'POST' })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
+export async function simReset(): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/api/sim/reset`, { method: 'POST' })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
