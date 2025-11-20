@@ -4,7 +4,7 @@ import CodePanel from './components/CodePanel'
 import CPUState from './components/CPUState'
 import BottomPanel from './components/BottomPanel'
 import { SimulationState, PipelineState, AsmError } from './types'
-import { assembleCode } from './services/api'
+import { assembleCode, loadProgram, simStep, simReset } from './services/api'
 
 const initialState: SimulationState = {
   pc: '0x00000000',
@@ -32,18 +32,14 @@ export default function App(){
     setConsoleLines((l)=>[...l, 'Assembling...'])
     
     try {
-      const result = await assembleCode(code)
-      
-      if (result.success) {
-        setConsoleLines((l)=>[...l, `✓ Assembly successful! ${result.instructions.length} instructions loaded.`])
+      // assemble + load into sim
+      const res = await loadProgram(code)
+      if (res.success) {
+        setConsoleLines((l)=>[...l, `✓ Loaded program to simulator`])
         setAssemblerErrors([])
       } else {
-        setConsoleLines((l)=>[
-          ...l, 
-          `✗ Assembly failed with ${result.errors.length} error(s):`,
-          ...result.errors.map(e => `  Line ${e.line}: ${e.message}`)
-        ])
-        setAssemblerErrors(result.errors)
+        setConsoleLines((l)=>[...l, `✗ Load failed`, ...((res.errors||[]).map(e=>`Line ${e.line}: ${e.message}`))])
+        setAssemblerErrors(res.errors || [])
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
@@ -54,16 +50,22 @@ export default function App(){
     }
   }
 
-  function handleStep(){
-    // mock step: increment PC and cycle
-    setSim(s=>({ ...s, pc: `0x${(parseInt(s.pc)+4).toString(16).padStart(8,'0')}`, cycle: s.cycle+1 }))
-    setConsoleLines((l)=>[...l, `Stepped to cycle ${sim.cycle+1}`])
+  async function handleStep(){
+    try{
+      const state = await simStep()
+      setSim(s=>({ ...s, pc: state.pc, registers: state.registers, cycle: state.cycle }))
+      setConsoleLines(l=>[...l, `Step ${state.cycle} PC=${state.pc}`])
+    } catch(e){
+      setConsoleLines(l=>[...l, `Step failed: ${e instanceof Error? e.message: String(e)}`])
+    }
   }
 
   function handleReset(){
-    setSim(initialState)
-    setConsoleLines([])
-    setAssemblerErrors([])
+    simReset().then(()=>{
+      setSim(initialState)
+      setConsoleLines([])
+      setAssemblerErrors([])
+    }).catch(e=> setConsoleLines(l=>[...l, `Reset failed: ${e instanceof Error? e.message: String(e)}`]))
   }
 
   return (

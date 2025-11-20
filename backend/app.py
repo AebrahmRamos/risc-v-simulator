@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from simulator.assembler import validate_program
+from simulator.core import SIM
 
 app = FastAPI(title="RISC-V Simulator API", version="1.0.0")
 
@@ -44,6 +45,31 @@ def assemble_code(request: AssembleRequest):
         instructions=result["instructions"],
         errors=result["errors"]
     )
+
+
+class SimLoadRequest(BaseModel):
+    source: str
+
+
+@app.post("/api/sim/load")
+def sim_load(req: SimLoadRequest):
+    # assemble + load into simulator
+    res = SIM.load_program(req.source)
+    if res.get("errors"):
+        return {"success": False, "errors": res.get("errors", [])}
+    return {"success": True}
+
+
+@app.post("/api/sim/step")
+def sim_step():
+    state = SIM.step()
+    return state
+
+
+@app.post("/api/sim/reset")
+def sim_reset():
+    SIM.reset()
+    return {"success": True}
 
 
 if __name__ == "__main__":

@@ -1,4 +1,16 @@
-VALID_OPCODES = ["LW", "SW", "AND", "OR", "ORI", "BLT", "BGE"]
+VALID_OPCODES = [
+    "LW", "SW",
+    # arithmetic
+    "ADD", "SUB", "ADDI",
+    # logical
+    "AND", "OR", "ORI",
+    # shifts
+    "SLL", "SLLI",
+    # branches
+    "BEQ", "BNE", "BLT", "BGE",
+    # compare
+    "SLT",
+]
 REGISTER_PREFIX = "x"
 MAX_REGISTER = 31
 
@@ -18,12 +30,23 @@ def parse_instruction(line: str, lineno: int):
     if not parts:
         return None  # skip blank lines
 
+    # Accept label-only lines or label: instr on same line
+    if parts[0].endswith(":"):
+        # label only -> skip validation here (simulator will resolve labels)
+        if len(parts) == 1:
+            return None
+        # otherwise drop the label token and continue with the instruction
+        parts = parts[1:]
+        if not parts:
+            return None
+
     opcode = parts[0].upper()
     if opcode not in VALID_OPCODES:
         raise ValueError(f"Invalid opcode '{opcode}'")
 
-    # Instruction format validation by type
-    if opcode in ["AND", "OR"]:  # R-type
+    # Instruction format validation by opcode groups
+    # R-type: rd rs1 rs2
+    if opcode in ["AND", "OR", "ADD", "SUB", "SLT", "SLL"]:
         if len(parts) != 4:
             raise ValueError(f"Wrong format for {opcode}. Expected: {opcode} rd, rs1, rs2")
         rd, rs1, rs2 = parts[1], parts[2], parts[3]
@@ -31,7 +54,8 @@ def parse_instruction(line: str, lineno: int):
             if not is_valid_register(r):
                 raise ValueError(f"Invalid register '{r}'")
 
-    elif opcode in ["ORI"]:  # I-type
+    # I-type arithmetic: rd rs1 imm
+    elif opcode in ["ADDI", "ORI"]:
         if len(parts) != 4:
             raise ValueError(f"Wrong format for {opcode}. Expected: {opcode} rd, rs1, imm")
         rd, rs1, imm = parts[1], parts[2], parts[3]
@@ -43,7 +67,21 @@ def parse_instruction(line: str, lineno: int):
         except ValueError:
             raise ValueError(f"Immediate '{imm}' must be an integer")
 
-    elif opcode in ["LW", "SW"]:  # Memory-type (I or S)
+    # SLLI: rd rs1 shamt
+    elif opcode in ["SLLI"]:
+        if len(parts) != 4:
+            raise ValueError(f"Wrong format for {opcode}. Expected: {opcode} rd, rs1, shamt")
+        rd, rs1, shamt = parts[1], parts[2], parts[3]
+        for r in [rd, rs1]:
+            if not is_valid_register(r):
+                raise ValueError(f"Invalid register '{r}'")
+        try:
+            int(shamt)
+        except ValueError:
+            raise ValueError(f"Shift amount '{shamt}' must be an integer")
+
+    # Memory-type (LW/SW): rd, offset(base) or rs2, offset(base)
+    elif opcode in ["LW", "SW"]:
         if len(parts) != 3:
             raise ValueError(f"Wrong format for {opcode}. Expected: {opcode} rd, offset(base)")
         rd_rs2, mem = parts[1], parts[2]
@@ -59,7 +97,8 @@ def parse_instruction(line: str, lineno: int):
         if not is_valid_register(rd_rs2):
             raise ValueError(f"Invalid destination/source register '{rd_rs2}'")
 
-    elif opcode in ["BLT", "BGE"]:  # Branch-type
+    # Branch-type: rs1 rs2 label
+    elif opcode in ["BLT", "BGE", "BEQ", "BNE"]:
         if len(parts) != 4:
             raise ValueError(f"Wrong format for {opcode}. Expected: {opcode} rs1, rs2, label")
         rs1, rs2, label = parts[1], parts[2], parts[3]
@@ -82,9 +121,14 @@ def validate_program(source: str) -> dict:
     errors = []
     
     for lineno, line in enumerate(lines, start=1):
+        # strip surrounding whitespace and remove inline comments
         line = line.strip()
-        # Skip empty lines and comments
-        if not line or line.startswith("#"):
+        if not line:
+            continue
+        # remove inline comments (anything after '#')
+        if '#' in line:
+            line = line.split('#', 1)[0].strip()
+        if not line:
             continue
             
         try:
