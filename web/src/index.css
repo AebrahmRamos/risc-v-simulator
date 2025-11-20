@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-[#1a1b26] text-[#a9b1d6];
+}
+
+/* Tokyo Night Storm color palette */
+:root {
+  --tokyo-bg: #24283b;
+  --tokyo-bg-dark: #1a1b26;
+  --tokyo-bg-highlight: #292e42;
+  --tokyo-comment: #565f89;
+  --tokyo-fg: #a9b1d6;
+  --tokyo-fg-dark: #787c99;
+  --tokyo-cyan: #7dcfff;
+  --tokyo-blue: #7aa2f7;
+  --tokyo-purple: #bb9af7;
+  --tokyo-green: #9ece6a;
+  --tokyo-yellow: #e0af68;
+  --tokyo-orange: #ff9e64;
+  --tokyo-red: #f7768e;
+  --tokyo-border: #1f2335;
+}
