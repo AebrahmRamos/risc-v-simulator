@@ -19,26 +19,26 @@ export default function CPUState({ state }: Props) {
   const fpRegs = state.floatRegisters || Array.from({length:32}).map(()=> '0x00000000')
 
   return (
-  <div className="p-3 bg-white border-l h-full overflow-auto">
-      <div className="text-sm text-slate-600 mb-2">CPU State</div>
-      <div className="mb-2">PC: <code className="bg-slate-100 px-2 py-0.5 rounded">{state.pc}</code></div>
+    <div className="p-3 bg-[#24283b] h-full overflow-auto">
+      <div className="text-sm text-[#565f89] mb-2">CPU State</div>
+      <div className="mb-3">PC: <code className="bg-[#1a1b26] text-[#7dcfff] px-2 py-1 rounded text-sm">{state.pc}</code></div>
 
-      <div className="mb-3 text-sm font-medium">Integer Registers</div>
-      <div className="grid grid-cols-2 gap-2 mb-4 max-h-40 overflow-auto">
+      <div className="mb-2 text-sm font-medium text-[#bb9af7]">Integer Registers</div>
+      <div className="grid grid-cols-1 gap-1 mb-4 max-h-40 overflow-auto">
         {intRegs.map((r,i)=> (
-          <div key={i} className="text-xs p-1 bg-slate-50 rounded border flex justify-between">
-            <span className="text-slate-600">{INT_REG_NAMES[i]}</span>
-            <strong className="ml-2">{r}</strong>
+          <div key={i} className="text-xs p-1.5 bg-[#1a1b26] rounded border border-[#292e42] flex justify-between">
+            <span className="text-[#565f89]">{INT_REG_NAMES[i]}</span>
+            <strong className="ml-2 text-[#7dcfff] font-mono">{r}</strong>
           </div>
         ))}
       </div>
 
-      <div className="mb-3 text-sm font-medium">Floating-point Registers</div>
-      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto">
+      <div className="mb-2 text-sm font-medium text-[#bb9af7]">Floating-point Registers</div>
+      <div className="grid grid-cols-1 gap-1 max-h-40 overflow-auto">
         {fpRegs.map((r,i)=> (
-          <div key={i} className="text-xs p-1 bg-slate-50 rounded border flex justify-between">
-            <span className="text-slate-600">{FP_REG_NAMES[i]}</span>
-            <strong className="ml-2">{r}</strong>
+          <div key={i} className="text-xs p-1.5 bg-[#1a1b26] rounded border border-[#292e42] flex justify-between">
+            <span className="text-[#565f89]">{FP_REG_NAMES[i]}</span>
+            <strong className="ml-2 text-[#7dcfff] font-mono">{r}</strong>
           </div>
         ))}
       </div>
