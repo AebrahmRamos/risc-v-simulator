@@ -178,9 +178,11 @@ export default function App(){
         <div className="flex-1 bg-[#24283b] border border-[#1f2335] overflow-hidden rounded">
           <CodePanel code={code} onChange={setCode} assemblerErrors={assemblerErrors} />
         </div>
-        <div className="w-80 flex-shrink-0 bg-[#24283b] border border-[#1f2335] overflow-hidden rounded">
-          <CPUState state={sim} />
-          <div className="p-2 flex flex-col gap-2">
+        <div className="w-80 flex-shrink-0 bg-[#24283b] border border-[#1f2335] overflow-auto rounded flex flex-col">
+          <div className="flex-1 overflow-auto">
+            <CPUState state={sim} />
+          </div>
+          <div className="p-2 flex flex-col gap-2 border-t border-[#1f2335] bg-[#24283b]">
             <button className="px-2 py-1 text-sm rounded bg-[#1a2338] text-[#7aa2f7]" onClick={()=>setShowRegEditor(s=>!s)}>{showRegEditor? 'Close Register Editor':'Edit Registers'}</button>
             {showRegEditor && (
               <RegisterInitializer initial={initialRegisters} onApply={(m: Record<string, number>)=>{ setInitialRegisters(m); setShowRegEditor(false); setConsoleLines(l=>[...l, 'Initial registers updated']) }} />
