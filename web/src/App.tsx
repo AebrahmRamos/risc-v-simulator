@@ -24,7 +24,7 @@ const initialState: SimulationState = {
 export default function App(){
   const [code, setCode] = useState<string>(`# sample riscv\nLW x1, 0(x2)\nAND x3, x1, x2`)
   const [sim, setSim] = useState<SimulationState>(initialState)
-  const [activeTab, setActiveTab] = useState<'pipeline-registers'|'opcodes'|'console'>('pipeline-registers')
+  const [activeTab, setActiveTab] = useState<'pipeline-diagram'|'pipeline-registers'|'opcodes'|'console'>('pipeline-diagram')
   const [consoleLines, setConsoleLines] = useState<string[]>([])
   const [assemblerErrors, setAssemblerErrors] = useState<AsmError[]>([])
   const [isAssembling, setIsAssembling] = useState(false)
@@ -77,7 +77,7 @@ export default function App(){
       const state = await simStep()
       setSim(s=>({ ...s, pc: state.pc, registers: state.registers, cycle: state.cycle }))
       setPipelineState(state.pipeline)
-      setPipelineHistory(h => [...h, { cycle: state.cycle, pipeline: state.pipeline }])
+      setPipelineHistory(h => [...h, { cycle: state.cycle, pipeline: state.pipeline, flush_count: state.flush_count || 0, stall_cycles: state.stall_cycles || 0 }])
       setConsoleLines(l=>[...l, `Cycle ${state.cycle} PC=${state.pc}${state.stall_cycles > 0 ? ` [${state.stall_cycles} stalls]` : ''}`])
       
       // Check if halted (all stages empty)
@@ -112,7 +112,7 @@ export default function App(){
         const state = await simStep()
         setSim(s=>({ ...s, pc: state.pc, registers: state.registers, cycle: state.cycle }))
         setPipelineState(state.pipeline)
-        setPipelineHistory(h => [...h, { cycle: state.cycle, pipeline: state.pipeline }])
+        setPipelineHistory(h => [...h, { cycle: state.cycle, pipeline: state.pipeline, flush_count: state.flush_count || 0, stall_cycles: state.stall_cycles || 0 }])
         
         // Check if halted
         const allEmpty = state.halted && 

@@ -1,17 +1,88 @@
 import React from 'react'
 
 interface Props {
-  activeTab: 'pipeline-registers'|'console'|'opcodes'
-  onSelectTab: (t: 'pipeline-registers'|'console'|'opcodes') => void
-  pipelineHistory?: Array<{cycle: number; pipeline: any}>
+  activeTab: 'pipeline-diagram'|'pipeline-registers'|'console'|'opcodes'
+  onSelectTab: (t: 'pipeline-diagram'|'pipeline-registers'|'console'|'opcodes') => void
+  pipelineHistory?: Array<{cycle: number; pipeline: any; flush_count?: number; stall_cycles?: number}>
   opcodes?: Array<{address: string; hex: string; raw: string}>
   consoleLines?: string[]
 }
 
 export default function BottomPanel({ activeTab, onSelectTab, pipelineHistory = [], opcodes = [], consoleLines = [] }: Props) {
+  const buildPipelineDiagram = () => {
+    if (pipelineHistory.length === 0) return { diagram: [], flushCycles: new Set<number>() }
+    
+    const instructionMap = new Map<string, Array<{cycle: number, stage: string, isStall?: boolean}>>()
+    const flushCycles = new Set<number>()
+    
+    let prevFlushCount = 0
+    
+    pipelineHistory.forEach((entry, idx) => {
+      const pipeline = entry.pipeline
+      const currentFlushCount = entry.flush_count || 0
+      
+      if (currentFlushCount > prevFlushCount) {
+        flushCycles.add(entry.cycle)
+        prevFlushCount = currentFlushCount
+      }
+      
+      if (!pipeline['IF/ID']?.nop && pipeline['IF/ID']?.raw) {
+        const key = pipeline['IF/ID'].raw
+        if (!instructionMap.has(key)) instructionMap.set(key, [])
+        instructionMap.get(key)!.push({cycle: entry.cycle, stage: 'IF'})
+      }
+      
+      if (!pipeline['ID/EX']?.nop && pipeline['ID/EX']?.raw) {
+        const key = pipeline['ID/EX'].raw
+        if (!instructionMap.has(key)) instructionMap.set(key, [])
+        const stages = instructionMap.get(key)!
+        const lastStage = stages[stages.length - 1]
+        const isStall = lastStage?.stage === 'ID' && lastStage?.cycle === entry.cycle - 1
+        instructionMap.get(key)!.push({cycle: entry.cycle, stage: 'ID', isStall})
+      }
+      
+      if (!pipeline['EX/MEM']?.nop && pipeline['EX/MEM']?.raw) {
+        const key = pipeline['EX/MEM'].raw
+        if (!instructionMap.has(key)) instructionMap.set(key, [])
+        instructionMap.get(key)!.push({cycle: entry.cycle, stage: 'EX'})
+      }
+      
+      if (!pipeline['MEM/WB']?.nop && pipeline['MEM/WB']?.raw) {
+        const key = pipeline['MEM/WB'].raw
+        if (!instructionMap.has(key)) instructionMap.set(key, [])
+        instructionMap.get(key)!.push({cycle: entry.cycle, stage: 'MEM'})
+      }
+    })
+    
+    return {
+      diagram: Array.from(instructionMap.entries()).map(([instr, stages]) => ({
+        instruction: instr,
+        stages: stages
+      })),
+      flushCycles
+    }
+  }
+  
+  const {diagram: pipelineDiagram, flushCycles} = buildPipelineDiagram()
+  const maxCycle = pipelineHistory.length > 0 ? pipelineHistory[pipelineHistory.length - 1].cycle : 0
+  
+  const cycleInfo = new Map<number, {stall: boolean, flush: boolean}>()
+  pipelineHistory.forEach((entry) => {
+    cycleInfo.set(entry.cycle, {
+      stall: entry.pipeline.IF?.stalled || false,
+      flush: flushCycles.has(entry.cycle)
+    })
+  })
+
   return (
-    <div className="h-48 bg-[#24283b] border-t border-[#1f2335]">
+    <div className="h-64 bg-[#24283b] border-t-2 border-[#7aa2f7]">
       <div className="flex border-b border-[#1f2335]">
+        <button 
+          className={`px-3 py-2 text-sm ${activeTab==='pipeline-diagram'?'border-b-2 border-[#7aa2f7] text-[#7aa2f7]':'text-[#565f89] hover:text-[#a9b1d6]'}`} 
+          onClick={()=>onSelectTab('pipeline-diagram')}
+        >
+          Pipeline Diagram
+        </button>
         <button 
           className={`px-3 py-2 text-sm ${activeTab==='pipeline-registers'?'border-b-2 border-[#7aa2f7] text-[#7aa2f7]':'text-[#565f89] hover:text-[#a9b1d6]'}`} 
           onClick={()=>onSelectTab('pipeline-registers')}
@@ -32,6 +103,96 @@ export default function BottomPanel({ activeTab, onSelectTab, pipelineHistory = 
         </button>
       </div>
       <div className="p-3 overflow-auto h-[calc(100%-3rem)]">
+        {activeTab==='pipeline-diagram' && (
+          <div className="text-xs font-mono">
+            {pipelineDiagram.length === 0 ? (
+              <div className="text-[#565f89]">No instructions executed yet. Click Step or Run to begin.</div>
+            ) : (
+              <>
+                <div className="flex gap-4 mb-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-[#c0caf5] border border-[#292e42]"></div>
+                    <span className="text-[#a9b1d6]">Normal Stage</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-[#f7768e] border border-[#292e42]"></div>
+                    <span className="text-[#a9b1d6]">Stall (S)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-[#e0af68] border border-[#292e42]"></div>
+                    <span className="text-[#a9b1d6]">Flush (F)</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-[#bb9af7] border border-[#292e42]"></div>
+                    <span className="text-[#a9b1d6]">Stall+Flush (S+F)</span>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                <table className="border-collapse">
+                  <thead>
+                    <tr className="bg-[#7aa2f7]">
+                      <th className="border border-[#292e42] px-4 py-2 text-left text-[#1a1b26] font-bold sticky left-0 bg-[#7aa2f7] z-10">Instruction</th>
+                      {Array.from({length: maxCycle}, (_, i) => i + 1).map(cycle => {
+                        const info = cycleInfo.get(cycle)
+                        let cycleLabel = cycle.toString()
+                        let bgColor = ''
+                        
+                        if (info?.stall && info?.flush) {
+                          cycleLabel = `${cycle} (S+F)`
+                          bgColor = 'bg-[#bb9af7]' // Purple for both
+                        } else if (info?.stall) {
+                          cycleLabel = `${cycle} (S)`
+                          bgColor = 'bg-[#f7768e]' // Red for stall
+                        } else if (info?.flush) {
+                          cycleLabel = `${cycle} (F)`
+                          bgColor = 'bg-[#e0af68]' // Orange for flush
+                        }
+                        
+                        return (
+                          <th key={cycle} className={`border border-[#292e42] px-4 py-2 text-center text-[#1a1b26] font-bold whitespace-nowrap ${bgColor}`}>
+                            {cycleLabel}
+                          </th>
+                        )
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pipelineDiagram.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-[#1f2335]">
+                        <td className="border border-[#292e42] px-4 py-2 text-[#a9b1d6] sticky left-0 bg-[#24283b] z-10 whitespace-nowrap">
+                          {item.instruction}
+                        </td>
+                        {Array.from({length: maxCycle}, (_, i) => i + 1).map(cycle => {
+                          const stageAtCycle = item.stages.find(s => s.cycle === cycle)
+                          const info = cycleInfo.get(cycle)
+                          let bgColor = 'bg-[#1a1b26]'
+                          let textColor = 'text-[#565f89]'
+                          
+                          if (stageAtCycle) {
+                            if (stageAtCycle.isStall) {
+                              bgColor = 'bg-[#f7768e]' 
+                              textColor = 'text-[#1a1b26]'
+                            } else {
+                              bgColor = 'bg-[#c0caf5]' 
+                              textColor = 'text-[#1a1b26]'
+                            }
+                          }
+                          
+                          return (
+                            <td key={cycle} className={`border border-[#292e42] px-4 py-2 text-center font-bold ${bgColor} ${textColor}`}>
+                              {stageAtCycle?.stage || ''}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              </>
+            )}
+          </div>
+        )}
         {activeTab==='pipeline-registers' && (
           <div className="text-xs font-mono">
             {pipelineHistory.length === 0 ? (
