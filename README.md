@@ -1,14 +1,25 @@
-# Milestone 2
-Milestone 2 — GUI and Initial Execution (Nov 20, 2025)
- - Added supoprt for labels
- - Separated Integer and Floating integers in `CPU State` panel into tabs with scrollable views.
- - Assemble loads program into the simulator allowing `Step` to execute a single instruction.
-   - Pressing step executes one instruction and updates the PC and the registers
- - Implemented the simulator endpoints
-   - `POST /api/sim/load` — assemble & load program into simulator
-   - `POST /api/sim/step` — execute one instruction at current PC and return simulation state
-   - `POST /api/sim/reset` — reset simulator state
- - Updated services to include helpers related to the three new endpoints, `loadProgram`, `simStep`, and `simReset`
+# RISC-V Simulator
+
+5-stage pipelined RISC-V processor simulator with cycle-accurate execution, hazard detection, and interactive visualization.
+
+# Milestone 3 — Pipeline Implementation (Nov 23, 2025)
+  - Implemented the 5 stage pipeline simulator (IF -> ID -> EX -> MEM -> WB)
+    - Pipeline register trace table
+    - Data hazard with stalling (no forwarding)
+    - Control hazard with predict not taken and flush on taken branches
+    - RISC-V instruction encoder / instruction tbale
+  - Pipeline visualization through the trace tables where the rows = registers, and columns = cycles
+  - Opcode tab implementation showing the instruction and their corresponding 32 bit opcode hex
+  - Enhanced api's
+    - /api/sim/load accepts initial_registers and initial_memory
+    - /api/sim/step returns complete pipeline snapshop
+    - Instruction encoding and hex display
+
+# Milestone 2 — GUI and Initial Execution (Nov 20, 2025)
+ - Added support for labels
+ - Separated Integer and Floating integers in `CPU State` panel into tabs with scrollable views
+ - Assemble loads program into the simulator allowing `Step` to execute cycle-by-cycle
+ - Implemented the simulator endpoints and services
 
 # RISC-V Simulator
 
@@ -56,15 +67,42 @@ Implemented the requirements for Milestone 1 which is to have a program input wi
 - Pydantic validation
 - CORS enabled
 
+## Quick Start with Examples
+
+1. **Start servers** (see Quick Start section below)
+2. **Open** http://localhost:5173/
+3. **Try an example:**
+   ```bash
+   # Copy from examples/02_data_hazard.asm
+   ADDI x1, x0, 10
+   ADDI x2, x0, 20
+   ADD x3, x1, x2      # Watch for stalls!
+   ADD x4, x3, x3
+   ```
+4. **Click Assemble** → **Click Step** repeatedly
+5. **Watch** the Pipeline Registers table fill with cycle data
+
+See `/examples/README.md` for 7 complete example programs with expected behaviors.
+
 ## Supported Instructions
 
-- **LW** - Load Word: `LW x1, 0(x2)`
-- **SW** - Store Word: `SW x2, 4(x1)`
-- **AND** - Bitwise AND: `AND x3, x1, x2`
-- **OR** - Bitwise OR: `OR x3, x1, x2`
-- **ORI** - OR Immediate: `ORI x3, x1, 10`
-- **BLT** - Branch Less Than: `BLT x1, x2, loop`
-- **BGE** - Branch Greater Equal: `BGE x1, x2, end`
+**Arithmetic:**
+- `ADD`, `SUB`, `ADDI` - Addition and subtraction
+- `AND`, `OR`, `ORI` - Bitwise operations
+- `SLL`, `SLLI` - Shift left logical
+- `SLT` - Set less than (signed comparison)
+
+**Memory:**
+- `LW` - Load word: `LW x1, 0(x2)`
+- `SW` - Store word: `SW x2, 4(x1)`
+
+**Control:**
+- `BEQ`, `BNE` - Branch if equal/not equal
+- `BLT`, `BGE` - Branch if less than / greater or equal (signed)
+
+**Memory Layout (per spec):**
+- Data segment: `0x0000` - `0x007F` (128 bytes)
+- Program segment: `0x0080` - `0x00FF` (128 bytes)
 
 ## Component Architecture
  - **web/src/components/ToolBar.tsx** : Top action bar (Run, Pause, Step, Reset, Assemble) and error count.

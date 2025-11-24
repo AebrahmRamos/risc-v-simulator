@@ -38,11 +38,11 @@ export async function assembleCode(source: string): Promise<AssembleResponse> {
   return await response.json()
 }
 
-export async function loadProgram(source: string): Promise<{ success: boolean; errors?: AssembleError[] }> {
+export async function loadProgram(source: string, initialRegisters?: Record<string, number>, initialMemory?: Record<string, number|string>): Promise<{ success: boolean; errors?: AssembleError[]; instructions?: any[]; labels?: Record<string, string> }> {
   const response = await fetch(`${API_BASE_URL}/api/sim/load`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source }),
+    body: JSON.stringify({ source, initial_registers: initialRegisters, initial_memory: initialMemory }),
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.json()

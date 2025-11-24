@@ -18,7 +18,7 @@ export default function CPUState({ state }: Props) {
   const fpRegs = state.floatRegisters || Array.from({length:32}).map(()=> '0x00000000')
 
   return (
-    <div className="p-3 bg-[#24283b] h-full">
+    <div className="p-3 bg-[#24283b]">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-[#565f89]">CPU State</div>
         <div className="text-xs text-[#565f89]">PC: <code className="bg-[#1a1b26] text-[#7dcfff] px-2 py-1 rounded text-sm">{state.pc}</code></div>
